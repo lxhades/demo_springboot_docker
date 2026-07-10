@@ -2,20 +2,33 @@ name: Spring Boot CI
 
 on:
   push:
-    branches:
-      - main
-
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
-    steps:
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
 
+    defaults:
+      run:
+        working-directory: backend/demo
+
+    steps:
       - name: Checkout source code
         uses: actions/checkout@v4
 
@@ -26,6 +39,12 @@ jobs:
           java-version: '17'
           cache: maven
 
+      - name: Wait for MySQL
+        run: |
+          until mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; do
+            echo "Waiting for MySQL..."
+            sleep 5
+          done
+
       - name: Build project
-        working-directory: backend/demo
-        run: mvn clean package
+        run: mvn clean package -Dspring.profiles.active=test
