@@ -27,4 +27,5 @@ jobs:
           cache: maven
 
       - name: Build project
+        working-directory: backend/demo
         run: mvn clean package
